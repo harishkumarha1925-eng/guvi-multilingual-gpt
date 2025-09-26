@@ -2,45 +2,50 @@
 from typing import Optional
 from transformers import pipeline
 
-# Build the pipeline once (CPU)
+# cache for local pipeline
 _llm: Optional[pipeline] = None
 
+
 def _get_llm():
+    """Initialize the small local model pipeline once (CPU-friendly)."""
     global _llm
     if _llm is None:
-        # small, CPU-friendly instruction model
         _llm = pipeline(
             "text2text-generation",
-            model="google/flan-t5-small",
+            model="google/flan-t5-small",   # small & fast
             tokenizer="google/flan-t5-small",
             device_map="cpu",
         )
     return _llm
 
+
 def _local_generate(prompt: str, domain_role: str = "general") -> str:
     """
-    Generate an answer using a small local model.
-    Always return a string.
+    Generate an answer using FLAN-T5-small locally.
+    Clean prompt template: avoid 'You are...' instructions that get echoed.
     """
     llm = _get_llm()
 
-    system = {
-        "general":    "You are a helpful, brief assistant.",
-        "technical":  "You are a precise software assistant. Use short, correct explanations.",
-        "educational":"You explain simply with 1–2 short examples.",
-        "friendly":   "Be warm and encouraging. Keep answers short.",
-    }.get(domain_role, "You are a helpful, brief assistant.")
+    # Role-specific style guides
+    styles = {
+        "general":    "Answer the question in one short sentence.",
+        "technical":  "Answer precisely and briefly.",
+        "educational":"Explain in one short sentence.",
+        "friendly":   "Answer briefly and warmly.",
+    }
+    style = styles.get(domain_role, styles["general"])
 
     instruction = (
-        f"{system}\n\n"
+        f"{style}\n\n"
         f"Question: {prompt}\n"
-        f"Answer briefly:"
+        f"Answer:"
     )
 
     out = llm(
         instruction,
-        max_new_tokens=128,
+        max_new_tokens=64,
         do_sample=False,
+        early_stopping=True,
         num_return_sequences=1,
     )[0]["generated_text"]
 
@@ -48,11 +53,15 @@ def _local_generate(prompt: str, domain_role: str = "general") -> str:
 
 
 def generate_answer(prompt: str, domain_role: str = "general") -> str:
+    """
+    Public entry point used by router. Always returns a string.
+    """
     try:
         response = _local_generate(str(prompt), domain_role=str(domain_role))
         return str(response)
     except Exception as e:
         return f"[LLM error: {type(e).__name__}]"
+
 
 
 
