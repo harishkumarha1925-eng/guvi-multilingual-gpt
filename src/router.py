@@ -1,35 +1,26 @@
 # src/router.py
-from .language_detection import detect_lang_code
-from .translation import maybe_translate_to_english, translate_back
-from .llm_backend import generate_answer
-from .heuristics import maybe_answer_locally  # <-- add this import
+from src.translation import translate_text
+from src.llm_backend import generate_answer
 
-def handle_turn(user_text: str, domain_role: str = "general"):
-    iso, nllb_src = detect_lang_code(user_text)
-    english_text, translated_in = maybe_translate_to_english(user_text, nllb_src)
+def handle_turn(user_text: str, domain_role: str = "general") -> str:
+    try:
+        # Translate input to English
+        english_text = translate_text(user_text, target_lang="eng_Latn")
 
-    # NEW: try to answer without LLM for simple utilities
-    local = maybe_answer_locally(english_text)
-    if local is not None:
-        final_answer = translate_back(local, nllb_src)
-        return {
-            "user_iso": iso,
-            "user_nllb": nllb_src,
-            "was_translated_in": translated_in,
-            "english_query": english_text,
-            "english_answer": local,
-            "final_answer": final_answer,
-            "answered_via": "local_heuristic",
-        }
+        if not english_text:
+            return "⚠️ Could not translate your input."
 
-    english_answer = generate_answer(english_text, domain_role=domain_role)
-    final_answer = translate_back(english_answer, nllb_src)
-    return {
-        "user_iso": iso,
-        "user_nllb": nllb_src,
-        "was_translated_in": translated_in,
-        "english_query": english_text,
-        "english_answer": english_answer,
-        "final_answer": final_answer,
-        "answered_via": "llm",
-    }
+        # Generate answer in English
+        english_answer = generate_answer(english_text, domain_role=domain_role)
+
+        if not english_answer:
+            return "⚠️ The language model did not return a response."
+
+        # Translate back to user language
+        translated_back = translate_text(english_answer, target_lang=None)
+
+        return translated_back or english_answer
+
+    except Exception as e:
+        return f"⚠️ Internal error: {type(e).__name__}"
+
