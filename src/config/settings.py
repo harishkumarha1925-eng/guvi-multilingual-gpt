@@ -1,4 +1,3 @@
-# src/config/settings.py
 from dataclasses import dataclass
 
 @dataclass

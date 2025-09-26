@@ -1,20 +1,23 @@
+# --- core app ---
 streamlit==1.38.0
 protobuf==5.29.5
 packaging==24.2
+pillow==10.4.0          # streamlit requires <11
+rich==13.9.4            # streamlit 1.38 needs rich<14
 
+# --- HF stack ---
 transformers==4.56.2
 tokenizers==0.22.1
 accelerate==1.10.1
 huggingface-hub==0.35.1
 sentencepiece==0.2.1
 
-torch==2.8.0+cpu ; platform_system!="Windows"
-
-pillow==10.4.0        # streamlit requires <11
-rich==13.9.4          # streamlit 1.38 requires rich<14
-
+# --- numeric / data ---
 numpy==2.3.3
 pandas==2.3.2
 pyarrow==21.0.0
+
+# --- PyTorch (CPU) for Python 3.13 on manylinux_2_28 ---
+https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp313-cp313-manylinux_2_28_x86_64.whl
 
 
