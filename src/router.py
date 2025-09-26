@@ -4,23 +4,20 @@ from src.llm_backend import generate_answer
 
 def handle_turn(user_text: str, domain_role: str = "general") -> str:
     try:
-        # Translate input to English
-        english_text = translate_text(user_text, target_lang="eng_Latn")
-
-        if not english_text:
+        # 1) to English
+        english_text = translate_text(user_text, target_lang="eng_Latn") or ""
+        if not english_text.strip():
             return "⚠️ Could not translate your input."
 
-        # Generate answer in English
-        english_answer = generate_answer(english_text, domain_role=domain_role)
-
-        if not english_answer:
+        # 2) get answer
+        english_answer = generate_answer(english_text, domain_role=str(domain_role or "general"))
+        if not english_answer.strip():
             return "⚠️ The language model did not return a response."
 
-        # Translate back to user language
-        translated_back = translate_text(english_answer, target_lang=None)
-
-        return translated_back or english_answer
-
+        # 3) back to user language (identity if your translator is a stub)
+        final_text = translate_text(english_answer, target_lang=None) or english_answer
+        return final_text.strip() or english_answer
     except Exception as e:
         return f"⚠️ Internal error: {type(e).__name__}"
+
 
