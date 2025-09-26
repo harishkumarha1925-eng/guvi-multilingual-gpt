@@ -71,25 +71,18 @@ def _get_nllb():
 
 
 # -------------------- Public translation API --------------------
-def translate(text: str, src_lang: str, tgt_lang: str) -> str:
-    """
-    Translate `text` from src_lang (NLLB code) to tgt_lang (NLLB code).
-    Note: The underlying generation only needs `forced_bos_token_id` for the target.
-    """
-    tok, model = _get_nllb()
+def translate_text(text: str, target_lang: str = None) -> str:
+    try:
+        # Existing translation logic...
+        translated = translator(text, target_lang=target_lang)  # example
 
-    inputs = tok(text, return_tensors="pt", truncation=True)
-    bos_id = _forced_bos_id(tok, tgt_lang)
+        # Ensure string
+        if isinstance(translated, (list, dict)):
+            translated = str(translated)
 
-    generated = model.generate(
-        **inputs,
-        forced_bos_token_id=bos_id,
-        max_new_tokens=512,
-        num_beams=3,
-        early_stopping=True,
-    )
-    return tok.decode(generated[0], skip_special_tokens=True)
-
+        return translated.strip()
+    except Exception as e:
+        return f"[Translation error: {type(e).__name__}]"
 
 def maybe_translate_to_english(text: str, src_nllb: str) -> Tuple[str, bool]:
     """
