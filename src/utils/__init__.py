@@ -1,14 +1,9 @@
-from contextlib import contextmanager
 import streamlit as st
 
-@contextmanager
-def status(label: str = "Working..."):
-    # Minimal no-op context so imports don't fail
-    yield
+def status(msg, level="info"):
+    # level: "info", "success", "warning", "error"
+    fn = getattr(st, level, st.info)
+    fn(msg)
 
-def toast_ok(msg: str) -> None:
-    st.success(msg)
-
-def toast_warn(msg: str) -> None:
-    st.warning(msg)
-
+def toast_ok(msg): st.toast(msg, icon="✅")
+def toast_warn(msg): st.toast(msg, icon="⚠️")
