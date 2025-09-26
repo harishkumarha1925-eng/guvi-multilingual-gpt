@@ -19,5 +19,8 @@ pyarrow==21.0.0
 
 # --- PyTorch (CPU) for Python 3.13 on manylinux_2_28 ---
 https://download.pytorch.org/whl/cpu/torch-2.8.0%2Bcpu-cp313-cp313-manylinux_2_28_x86_64.whl
+langdetect==1.0.9
+transformers<5,>=4.56
+sentencepiece==0.2.1
 
 
