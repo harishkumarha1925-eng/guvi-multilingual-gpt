@@ -20,7 +20,13 @@ from typing import Dict
 import requests
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, pipeline
 
-from .config import settings
+from src.config import settings
+
+# Guard: never allow hf_inference without a valid token
+if settings.LLM_MODE == "hf_inference" and not settings.HF_API_TOKEN:
+    # fallback to local automatically
+    settings.LLM_MODE = "local_small"
+
 
 # ------------- Shared prompt scaffolding -------------
 SYSTEM_PREFIX = (
