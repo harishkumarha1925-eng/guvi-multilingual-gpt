@@ -1,23 +1,22 @@
-# --- app & UI ---
+# --- Streamlit & friends ---
 streamlit==1.38.0
 protobuf<6,>=3.20
 packaging<25
 
-# --- HF stack (Python 3.13 compatible) ---
+# --- HF stack (Py 3.13 compatible) ---
 transformers>=4.56,<5
 tokenizers>=0.20.1
 accelerate>=1.0.0
 huggingface-hub>=0.25
 sentencepiece==0.2.1
 
-# --- Torch (CPU) ---
-# On Streamlit Cloud (Linux CPU), this pulls a CPU wheel.
-# If it still tries CUDA extras and is too heavy, we can swap to 2.2/2.3 later.
-torch==2.3.1
+# --- Torch (Py 3.13 wheel exists) ---
+torch==2.8.0
 
-# --- utilities ---
+# --- Utilities ---
 langdetect==1.0.9
 python-dotenv==1.0.1
 pydantic>=2.11,<3
 pydantic-core==2.33.2
 requests>=2.32.3
+
