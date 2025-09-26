@@ -1,24 +1,26 @@
 import streamlit as st
-from src.config import settings
 
-def handle_turn():
+def handle_turn() -> None:
     st.title("Multilingual GPT (stub)")
-    # replay chat history
-    if "history" not in st.session_state:
-        st.session_state.history = []
-    for role, content in st.session_state.history:
-        with st.chat_message(role):
-            st.markdown(content)
 
-    # input box
-    user_msg = st.chat_input("Say something…")
-    if user_msg:
-        st.session_state.history.append(("user", user_msg))
+    # simple chat history
+    if "messages" not in st.session_state:
+        st.session_state["messages"] = []
+
+    # render history
+    for msg in st.session_state["messages"]:
+        with st.chat_message(msg["role"]):
+            st.write(msg["content"])
+
+    # input + echo reply
+    user_text = st.chat_input("Say something...")
+    if user_text:
+        st.session_state["messages"].append({"role": "user", "content": user_text})
         with st.chat_message("user"):
-            st.markdown(user_msg)
+            st.write(user_text)
 
-        # dummy reply so the app runs
-        reply = f"[{settings.device}] You said: {user_msg}"
-        st.session_state.history.append(("assistant", reply))
+        reply = "Echo: " + user_text
+        st.session_state["messages"].append({"role": "assistant", "content": reply})
         with st.chat_message("assistant"):
-            st.markdown(reply)
+            st.write(reply)
+
