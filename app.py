@@ -1,143 +1,60 @@
-# app.py
-import os
-from types import SimpleNamespace
+# app.py  — minimal, TypeError-proof Streamlit app
 import streamlit as st
+from src.router import handle_turn  # must return a string
 
-# ── Safe imports with sensible fallbacks ──────────────────────────────────────
-# settings
-try:
-    from src.config import settings  # your own config object
-except Exception:
-    # Fallback defaults so the app can still boot
-    settings = SimpleNamespace(
-        APP_TITLE="Multilingual GPT",
-        APP_DESCRIPTION="Ask anything. I’ll detect the language and reply helpfully.",
-        LLM_MODE=os.getenv("LLM_MODE", "offline"),
-        DOMAINS=["general", "mentor", "recommender", "faq"],
-        DEFAULT_DOMAIN="general",
-    )
+st.set_page_config(page_title="GUVI Multilingual GPT Chatbot", page_icon="🤖")
 
-# router / handler
-try:
-    # Prefer an explicit handler module if you created one
-    try:
-        from src.router.handler import handle_turn
-    except Exception:
-        from src.router import handle_turn  # type: ignore
-except Exception:
-    # Last-ditch fallback: echo handler so the UI still works
-    def handle_turn(user_text: str, *, domain: str = "general") -> str:
-        return f"[stub] Domain={domain}\nYou said: {user_text}"
-
-# toasts
-try:
-    from src.utils import toast_ok, toast_warn  # optional niceties
-except Exception:
-    def toast_ok(msg: str) -> None:
-        st.toast(msg, icon="✅")
-
-    def toast_warn(msg: str) -> None:
-        st.toast(msg, icon="⚠️")
-
-
-# ── Page config ───────────────────────────────────────────────────────────────
-st.set_page_config(
-    page_title=getattr(settings, "APP_TITLE", "Multilingual GPT"),
-    page_icon="🌍",
-    layout="centered",
+# --- sidebar --------------------------------------------------------------
+st.sidebar.header("Settings")
+domain_mode = st.sidebar.selectbox(
+    "Domain mode", ["general", "technical", "educational", "friendly"], index=0
 )
 
-st.title(getattr(settings, "APP_TITLE", "Multilingual GPT"))
-if desc := getattr(settings, "APP_DESCRIPTION", ""):
-    st.caption(desc)
-
-col1, col2 = st.columns(2)
-with col1:
+with st.sidebar.expander("Examples", expanded=False):
     st.markdown(
-        f"**LLM Mode**: `{getattr(settings, 'LLM_MODE', 'unknown')}`"
-    )
-with col2:
-    st.markdown(
-        "**Status**: ready"
+        "- general: *What's the capital of Japan?*\n"
+        "- technical: *Explain Python generators with a short code sample.*\n"
+        "- educational: *Teach fractions to a 10-year-old with an example.*\n"
+        "- friendly: *Write a cheerful 2-line greeting.*"
     )
 
-st.divider()
+# --- header ---------------------------------------------------------------
+st.title("GUVI Multilingual GPT Chatbot")
+st.caption("LLM Mode: `local_small`  •  Status: ready")
 
-# ── Domain selector & helpful examples ────────────────────────────────────────
-domains = list(getattr(settings, "DOMAINS", ["general", "mentor", "recommender", "faq"]))
-default_domain = getattr(settings, "DEFAULT_DOMAIN", "general")
-if default_domain not in domains:
-    default_domain = domains[0]
+# --- chat state -----------------------------------------------------------
+if "messages" not in st.session_state:
+    st.session_state.messages = []  # list[dict(role, content)]
 
-with st.sidebar:
-    st.header("Settings")
-    domain = st.selectbox("Domain mode", options=domains, index=domains.index(default_domain))
-    st.caption("Choose the assistant's behavior for your query.")
+# render history
+for m in st.session_state.messages:
+    st.chat_message(m["role"]).write(m["content"])
 
-    with st.expander("Examples", expanded=False):
-        examples = {
-            "general": [
-                "Translate this to Spanish: I forgot my umbrella.",
-                "Summarize: https://en.wikipedia.org/wiki/Streamlit",
-                "Explain TF-IDF like I’m 12."
-            ],
-            "mentor": [
-                "I’m stuck on binary search. What’s the bug in this code? (paste code)",
-                "Plan a 2-week path to learn Pandas with daily tasks.",
-                "Mock interview: arrays & strings, medium difficulty."
-            ],
-            "recommender": [
-                "Suggest 3 laptops under $900 for data science beginners.",
-                "Pick a Python book for absolute newbies and explain why.",
-                "Top 5 open datasets for NLP beginners."
-            ],
-            "faq": [
-                "What is this app and how does it work?",
-                "What models or libraries does it use?",
-                "Is my data stored?"
-            ],
-        }
-        for ex in examples.get(domain, []):
-            st.code(ex, language="text")
-
-# ── Simple chat state ─────────────────────────────────────────────────────────
-if "history" not in st.session_state:
-    st.session_state.history = []  # list[dict(role,str; content,str)]
-
-# Chat UI
-for msg in st.session_state.history:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
-
+# --- input ---------------------------------------------------------------
 user_text = st.chat_input("Type your message in any language…")
 
+def _safe_str(x) -> str:
+    return "" if x is None else str(x)
+
 if user_text:
-    st.session_state.history.append({"role": "user", "content": user_text})
-    with st.chat_message("user"):
-        st.markdown(user_text)
+    # show user message
+    user_text = _safe_str(user_text).strip()
+    st.session_state.messages.append({"role": "user", "content": user_text})
+    st.chat_message("user").write(user_text)
 
-    # Use Streamlit's official context manager (your previous error was here)
-    with st.status("Thinking & translating…", expanded=False) as s:
-        s.update(label="Working…", state="running")
-        try:
-            reply = handle_turn(user_text, domain=domain)
-            s.update(label="Done", state="complete")
-            toast_ok("Response ready")
-        except Exception as e:
-            # Show a concise error and keep the app alive
-            toast_warn("Something went wrong while generating the answer.")
-            reply = f"Sorry—there was an internal error: `{type(e).__name__}`. Please try again."
-    st.session_state.history.append({"role": "assistant", "content": reply})
-
-    with st.chat_message("assistant"):
-        st.markdown(reply)
-
-# ── Footer ────────────────────────────────────────────────────────────────────
-st.divider()
-with st.expander("About this app"):
-    st.markdown(
-        "- Multilingual input/output.\n"
-        "- Domain modes adjust tone and structure of answers.\n"
-        "- This UI uses only Streamlit built-ins for stability."
-    )
+    # get assistant reply safely
+    try:
+        with st.spinner("Thinking & translating…"):
+            reply = handle_turn(user_text, domain_role=_safe_str(domain_mode))
+        reply = _safe_str(reply).strip()
+        if not reply:
+            reply = "⚠️ Sorry—no response."
+        st.session_state.messages.append({"role": "assistant", "content": reply})
+        st.chat_message("assistant").write(reply)
+    except Exception as e:
+        # show the actual exception type so we can diagnose
+        import traceback
+        st.toast("Something went wrong while generating the answer.", icon="⚠️")
+        st.error(f"Internal error: {type(e).__name__}")
+        st.code(traceback.format_exc())
 
