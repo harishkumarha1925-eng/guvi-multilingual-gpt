@@ -1,30 +1,37 @@
 # src/config/settings.py
-
-from __future__ import annotations
+from dataclasses import dataclass
 import os
-from pydantic import BaseModel
-from dotenv import load_dotenv
-
-# Load .env file (if exists)
-load_dotenv()
+from typing import Tuple
 
 
-class Settings(BaseModel):
-    # ---- LLM Config ----
-    LLM_MODE: str = os.getenv("LLM_MODE", "local_small")  # local_small | hf_inference
-    HF_API_TOKEN: str | None = os.getenv("HF_API_TOKEN")
-    HF_TEXT_GENERATION_MODEL: str = os.getenv(
-        "HF_TEXT_GENERATION_MODEL", "google/flan-t5-small"
+@dataclass(frozen=True)
+class _Settings:
+    # App UI
+    APP_TITLE: str = "GUVI Multilingual GPT Chatbot"
+
+    # LLM/runtime
+    LLM_MODE: str = os.getenv("LLM_MODE", "local_small")  # local_small | local_large | remote
+    DEVICE: str = os.getenv("DEVICE", "cpu")              # cpu | cuda
+
+    # Translation languages (NLLB / FLORES codes)
+    # Keep English plus five Indian languages
+    SUPPORTED_LANGS: Tuple[str, ...] = (
+        "eng_Latn",  # English
+        "tam_Taml",  # Tamil
+        "hin_Deva",  # Hindi
+        "tel_Telu",  # Telugu
+        "kan_Knda",  # Kannada
+        "mal_Mlym",  # Malayalam
     )
 
-    # ---- Translation ----
-    NLLB_MODEL: str = os.getenv("NLLB_MODEL", "facebook/nllb-200-distilled-600M")
-    NLLB_SRC_LANG: str = os.getenv("NLLB_SRC_LANG", "auto")
-    NLLB_TGT_LANG: str = os.getenv("NLLB_TGT_LANG", "eng_Latn")
+    # Translation defaults
+    DEFAULT_TARGET: str = "eng_Latn"   # translate user input into this before LLM
+    DETECT_FALLBACK: str = "eng_Latn"  # fallback if language detection is uncertain
 
-    # ---- App UI ----
-    APP_TITLE: str = os.getenv("APP_TITLE", "GUVI Multilingual GPT Chatbot")
+    # Generation safeguards
+    MAX_TOKENS: int = int(os.getenv("MAX_TOKENS", "512"))
+    TIMEOUT_S: int = int(os.getenv("LLM_TIMEOUT_S", "30"))
 
 
-# Instantiate global settings object
-settings = Settings()
+# Single shared instance imported by the app
+settings = _Settings()
