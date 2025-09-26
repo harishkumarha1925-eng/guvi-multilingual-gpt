@@ -1,10 +1,23 @@
+# --- app & UI ---
 streamlit==1.38.0
-transformers==4.44.2
-accelerate>=0.33.0
-sentencepiece
-torch  # On Windows CPU, pip will fetch CPU build
+protobuf<6,>=3.20
+packaging<25
+
+# --- HF stack (Python 3.13 compatible) ---
+transformers>=4.56,<5
+tokenizers>=0.20.1
+accelerate>=1.0.0
+huggingface-hub>=0.25
+sentencepiece==0.2.1
+
+# --- Torch (CPU) ---
+# On Streamlit Cloud (Linux CPU), this pulls a CPU wheel.
+# If it still tries CUDA extras and is too heavy, we can swap to 2.2/2.3 later.
+torch==2.3.1
+
+# --- utilities ---
 langdetect==1.0.9
-huggingface-hub>=0.24.6
 python-dotenv==1.0.1
-pydantic>=2.8.2
+pydantic>=2.11,<3
+pydantic-core==2.33.2
 requests>=2.32.3
